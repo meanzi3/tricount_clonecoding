@@ -26,6 +26,11 @@ public class SettlementController {
     return new ResponseEntity<>(HttpStatus.OK);
   }
 
+  @GetMapping("/settles/{settlementId}/balance")
+  public ResponseEntity<Object> getSettlementBalanceResult(@PathVariable Long settlementId){
+    return new ResponseEntity<>(settlementService.getBalanceResult(settlementId), HttpStatus.OK);
+  }
+
 }
 
 

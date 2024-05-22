@@ -1,5 +1,6 @@
 package com.example.tricount.repository;
 
+import com.example.tricount.model.ExpenseResult;
 import com.example.tricount.model.Member;
 import com.example.tricount.model.Settlement;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Repository
@@ -74,6 +76,45 @@ public class SettlementRepository {
       settlement.setParticipants(participants);
       return settlement;
     });
+  }
+
+  // settlementId 별 참가 중인 모든 회원과 관련된 지출 내역을 조회
+  // 각 회원의 지출 내역을 담은 ExpenseResult 객체를 리스트로 반환
+  public List<ExpenseResult> findExpensesWithMemberBySettlementId(Long settlementId) {
+    String sql = "SELECT * " +
+            "FROM settlement_participant " +
+            "JOIN member ON settlement_participant.member_id = member.id " +
+            "LEFT JOIN expense ON settlement_participant.member_id = expense.payer_member_id " +
+            "AND settlement_participant.settlement_id = expense.settlement_id " +
+            "WHERE settlement_participant.settlement_id = ?";
+    return jdbcTemplate.query(sql, expenseResultRowMapper(), settlementId);
+  }
+
+  // DB 조회 결과 ExpenseResult 객체로 매핑
+  private RowMapper<ExpenseResult> expenseResultRowMapper() {
+    return (rs, rowNum) -> {
+      // ExpenseResult 객체 새로 생성
+      ExpenseResult expenseResult = new ExpenseResult();
+      // ResultSet에서 settlementId와 amount를 가져와 설정
+      expenseResult.setSettlementId(rs.getLong("settlement_participant.settlement_id"));
+      BigDecimal amt = rs.getBigDecimal("expense.amount");
+      expenseResult.setAmount(amt != null ? amt : BigDecimal.ZERO);
+
+      // Member 객체 새로 생성
+      Member member = new Member();
+      if(rs.getLong("member.id") != 0) {
+        // ResultSet에서 member 테이블의 정보를 가져와 설정
+        member.setId(rs.getLong("member.id"));
+        member.setLoginId(rs.getString("member.login_id"));
+        member.setPassword(rs.getString("member.password"));
+        member.setName(rs.getString("member.name"));
+
+        // payerMember 설정
+        expenseResult.setPayerMember(member);
+      }
+
+      return expenseResult;
+    };
   }
 
 }
