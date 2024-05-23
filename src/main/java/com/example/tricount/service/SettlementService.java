@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +39,20 @@ public class SettlementService {
 
   // 정산 결과
   public List<BalanceResult> getBalanceResult(Long settlementId){
+
+    // 정산방이 있는 지 확인
+    Optional<Settlement> settlementOptional = settlementRepository.findById(settlementId);
+    if(!settlementOptional.isPresent()){
+      throw new RuntimeException("settlement is not found");
+    }
+
+    // 해당 정산방에 참여한 회원인지 확인
+    boolean isParticipant = settlementOptional.get().getParticipants()
+            .stream().anyMatch(member -> member.getId().equals(MemberContext.getMember().getId()));
+    if(!isParticipant){
+      throw new RuntimeException("This member is not a participant in this settlement");
+    }
+
     // 특정 settlementId에 해당하는 지출 내역을 가져옴. 멤버별로 그룸화 함.
     Map<Member, List<ExpenseResult>> collect = settlementRepository.findExpensesWithMemberBySettlementId(settlementId)
             .stream().collect(Collectors.groupingBy(ExpenseResult::getPayerMember));
