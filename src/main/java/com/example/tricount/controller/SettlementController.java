@@ -26,6 +26,11 @@ public class SettlementController {
     return new ResponseEntity<>(HttpStatus.OK);
   }
 
+  @GetMapping("/settles/{settlementId}")
+  public ResponseEntity<Object> getSettlementExpenseResult(@PathVariable Long settlementId){
+    return new ResponseEntity<>(settlementService.getExpenseResult(settlementId), HttpStatus.OK);
+  }
+
   @GetMapping("/settles/{settlementId}/balance")
   public ResponseEntity<Object> getSettlementBalanceResult(@PathVariable Long settlementId){
     return new ResponseEntity<>(settlementService.getBalanceResult(settlementId), HttpStatus.OK);

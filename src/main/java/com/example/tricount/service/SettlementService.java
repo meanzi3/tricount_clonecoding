@@ -7,10 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +32,27 @@ public class SettlementService {
 
     // 현재 로그인 되어있는 회원을 읽어와서 참여자로 추가
     settlementRepository.addParticipantToSettlement(settlementId, MemberContext.getMember().getId());
+  }
+
+  public List<ExpenseResponse> getExpenseResult(Long settlementId){
+    // 정산방이 있는 지 확인
+    Optional<Settlement> settlementOptional = settlementRepository.findById(settlementId);
+    if(!settlementOptional.isPresent()){
+      throw new RuntimeException("settlement is not found");
+    }
+
+    // 해당 정산방에 참여한 회원인지 확인
+    boolean isParticipant = settlementOptional.get().getParticipants()
+            .stream().anyMatch(member -> member.getId().equals(MemberContext.getMember().getId()));
+    if(!isParticipant){
+      throw new RuntimeException("This member is not a participant in this settlement");
+    }
+
+    List<ExpenseResponse> expensesBySettlementId = settlementRepository.findExpensesBySettlementId(settlementId);
+
+    return expensesBySettlementId.stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
   }
 
   // 정산 결과
